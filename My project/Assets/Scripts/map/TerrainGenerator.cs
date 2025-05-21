@@ -1,112 +1,150 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class TerrainGenerator : MonoBehaviour
 {
-    public int width = 10;
-    public int height = 10;
+    public Transform player;
     public float tileSize = 20f;
+    public int tileRange = 2; // How many tiles around the player to generate
 
     public GameObject[] buildingPrefabs;
     public GameObject[] parkPrefabs;
+
     public GameObject roadStraight;
     public GameObject roadCorner;
-    public GameObject roadIntersection;
     public GameObject roadTJunction;
+    public GameObject roadIntersection;
 
     public GameObject[] foliagePrefabs;
 
-    private TileType[,] tileMap;
+    private Dictionary<Vector2Int, bool> roadMap = new();         // Tracks road presence
+    private HashSet<Vector2Int> generatedTiles = new();           // Tracks generated tiles
 
-    void Start()
+    void Update()
     {
-        tileMap = new TileType[width, height];
-        GenerateRoadNetwork();
-        GenerateTiles();
+        GenerateTilesAroundPlayer();
     }
 
-    //Roads Gen
-    void GenerateRoadNetwork()
+    void GenerateTilesAroundPlayer()
     {
-        for (int x = 0; x < width; x++)
-        {
-            for (int z = 0; z < height; z++)
-            {
-                if (x % 3 == 0 || z % 3 == 0)
-                    tileMap[x, z] = TileType.Street;
-                else
-                    tileMap[x, z] = GetRandomTileType(); // building or park
-            }
-        }
-    }
-    //Tiles Gen
-    void GenerateTiles()
-    {
-        for (int x = 0; x < width; x++)
-        {
-            for (int z = 0; z < height; z++)
-            {
-                Vector3 position = new Vector3(x * tileSize, 0, z * tileSize);
-                TileType type = tileMap[x, z];
+        Vector2Int playerTile = WorldToTileCoords(player.position);
 
-                if (type == TileType.Street)
-                    SpawnStreetTile(x, z, position);
-                else
-                    SpawnTile(type, position);
+        for (int dx = -tileRange; dx <= tileRange; dx++)
+        {
+            for (int dz = -tileRange; dz <= tileRange; dz++)
+            {
+                Vector2Int tileCoord = playerTile + new Vector2Int(dx, dz);
+
+                if (!generatedTiles.Contains(tileCoord))
+                {
+                    // STEP 1: Decide if this tile wants to be a road (global decision only once)
+                    if (!roadMap.ContainsKey(tileCoord))
+                        roadMap[tileCoord] = ComputeRoadDesire(tileCoord.x, tileCoord.y);
+
+                    // STEP 2: Generate terrain always
+                    GenerateTerrain(tileCoord);
+
+                    // STEP 3: Overlay road only if it was globally flagged
+                    if (roadMap[tileCoord])
+                        GenerateRoad(tileCoord);
+
+                    generatedTiles.Add(tileCoord);
+                }
             }
         }
     }
 
-    void SpawnTile(TileType type, Vector3 position)
+    Vector2Int WorldToTileCoords(Vector3 pos)
     {
-        GameObject[] prefabPool = type == TileType.Building ? buildingPrefabs : parkPrefabs;
-        GameObject prefab = prefabPool[Random.Range(0, prefabPool.Length)];
+        int x = Mathf.FloorToInt(pos.x / tileSize);
+        int z = Mathf.FloorToInt(pos.z / tileSize);
+        return new Vector2Int(x, z);
+    }
+
+    bool ComputeRoadDesire(int x, int z)
+    {
+        // Slight grid tendency with randomness
+        float noise = Mathf.PerlinNoise(x * 0.2f, z * 0.2f);
+        return (x % 3 == 0 || z % 3 == 0) && noise > 0.3f;
+    }
+
+    void GenerateTerrain(Vector2Int tileCoord)
+    {
+        Vector3 position = new Vector3(tileCoord.x * tileSize, 0, tileCoord.y * tileSize);
+        bool isBuilding = Random.value > 0.5f;
+
+        GameObject[] pool = isBuilding ? buildingPrefabs : parkPrefabs;
+        if (pool.Length == 0) return;
+
+        GameObject prefab = pool[Random.Range(0, pool.Length)];
         GameObject instance = Instantiate(prefab, position, Quaternion.identity, transform);
         AddFoliage(instance.transform, position);
     }
 
-    void SpawnStreetTile(int x, int z, Vector3 position)
+    void GenerateRoad(Vector2Int tileCoord)
     {
-        //has north
-        bool hasN = z < height - 1 && tileMap[x, z + 1] == TileType.Street;
-        //has South
-        bool hasS = z > 0 && tileMap[x, z - 1] == TileType.Street;
-        //has East
-        bool hasE = x < width - 1 && tileMap[x + 1, z] == TileType.Street;
-        //Has West
-        bool hasW = x > 0 && tileMap[x - 1, z] == TileType.Street;
+        int x = tileCoord.x;
+        int z = tileCoord.y;
+        Vector3 position = new Vector3(x * tileSize, 0, z * tileSize);
 
-        GameObject selected = roadStraight;
+        bool north = roadMap.ContainsKey(new Vector2Int(x, z + 1)) && roadMap[new Vector2Int(x, z + 1)];
+        bool south = roadMap.ContainsKey(new Vector2Int(x, z - 1)) && roadMap[new Vector2Int(x, z - 1)];
+        bool east = roadMap.ContainsKey(new Vector2Int(x + 1, z)) && roadMap[new Vector2Int(x + 1, z)];
+        bool west = roadMap.ContainsKey(new Vector2Int(x - 1, z)) && roadMap[new Vector2Int(x - 1, z)];
+
+        int count = (north ? 1 : 0) + (south ? 1 : 0) + (east ? 1 : 0) + (west ? 1 : 0);
+
+        GameObject prefab = null;
         Quaternion rot = Quaternion.identity;
 
-        if ((hasN && hasS && hasE && hasW))
+        if (count == 4)
         {
-            selected = roadIntersection;
+            prefab = roadIntersection;
         }
-        else if ((hasN && hasS && (hasE || hasW)) || (hasE && hasW && (hasN || hasS)))
+        else if (count == 3)
         {
-            selected = roadTJunction;
+            prefab = roadTJunction;
+            if (!north) rot = Quaternion.Euler(0, 180, 0);
+            else if (!east) rot = Quaternion.Euler(0, -90, 0);
+            else if (!south) rot = Quaternion.identity;
+            else if (!west) rot = Quaternion.Euler(0, 90, 0);
         }
-        else if ((hasN && hasE) || (hasE && hasS) || (hasS && hasW) || (hasW && hasN))
+        else if (count == 2)
         {
-            //Align Streets
-            selected = roadCorner;
-            if (hasN && hasE) rot = Quaternion.Euler(0, 0, 0);
-            else if (hasE && hasS) rot = Quaternion.Euler(0, 90, 0);
-            else if (hasS && hasW) rot = Quaternion.Euler(0, 180, 0);
-            else if (hasW && hasN) rot = Quaternion.Euler(0, 270, 0);
+            if (north && south)
+            {
+                prefab = roadStraight;
+                rot = Quaternion.identity;
+            }
+            else if (east && west)
+            {
+                prefab = roadStraight;
+                rot = Quaternion.Euler(0, 90, 0);
+            }
+            else
+            {
+                prefab = roadCorner;
+                if (north && east) rot = Quaternion.Euler(0, 0, 0);
+                else if (east && south) rot = Quaternion.Euler(0, 90, 0);
+                else if (south && west) rot = Quaternion.Euler(0, 180, 0);
+                else if (west && north) rot = Quaternion.Euler(0, 270, 0);
+            }
         }
-        else if ((hasN && hasS) || (hasE && hasW))
+        else if (count == 1)
         {
-            selected = roadStraight;
-            if (hasE && hasW) rot = Quaternion.Euler(0, 90, 0);
+            prefab = roadStraight;
+            if (north) rot = Quaternion.identity;
+            else if (east) rot = Quaternion.Euler(0, 90, 0);
+            else if (south) rot = Quaternion.Euler(0, 180, 0);
+            else if (west) rot = Quaternion.Euler(0, 270, 0);
+        }
+        else
+        {
+            // Optional: Don't spawn a road if it has no neighbors
+            return;
         }
 
-        Instantiate(selected, position, rot, transform);
-    }
-
-    TileType GetRandomTileType()
-    {
-        return Random.value > 0.5f ? TileType.Building : TileType.Park;
+        Instantiate(prefab, position, rot, transform);
     }
 
     void AddFoliage(Transform parent, Vector3 basePosition)
@@ -114,9 +152,12 @@ public class TerrainGenerator : MonoBehaviour
         int count = Random.Range(2, 6);
         for (int i = 0; i < count; i++)
         {
+            if (foliagePrefabs.Length == 0) return;
+
             GameObject foliage = foliagePrefabs[Random.Range(0, foliagePrefabs.Length)];
             Vector3 pos = basePosition + new Vector3(Random.Range(1f, tileSize - 1), 0, Random.Range(1f, tileSize - 1));
             Instantiate(foliage, pos, Quaternion.Euler(0, Random.Range(0, 360), 0), parent);
         }
     }
 }
+

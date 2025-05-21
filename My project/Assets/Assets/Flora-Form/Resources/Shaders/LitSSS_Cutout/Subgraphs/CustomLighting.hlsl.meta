@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: b1bf6036400daea4dbcceb6ee4a7cc1a
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  preprocessorOverride: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 266407
+  packageName: Flora-Form
+  packageVersion: 1.0
+  assetPath: Assets/Flora-Form/Resources/Shaders/LitSSS_Cutout/Subgraphs/CustomLighting.hlsl
+  uploadId: 629321

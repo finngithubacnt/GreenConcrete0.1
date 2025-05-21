@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6f65087dc77a6b44b9353dc7f2ad7fce
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 266407
+  packageName: Flora-Form
+  packageVersion: 1.0
+  assetPath: Assets/Flora-Form/Resources/Textures/Demo/terrain_grass_01_a_darker.mat
+  uploadId: 629321

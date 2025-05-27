@@ -5,7 +5,7 @@ public class TerrainGenerator : MonoBehaviour
 {
     public Transform player;
     public float tileSize = 20f;
-    public int tileRange = 2; 
+    public int tileRange = 2;
 
     public GameObject[] buildingPrefabs;
     public GameObject[] parkPrefabs;
@@ -17,8 +17,10 @@ public class TerrainGenerator : MonoBehaviour
 
     public GameObject[] foliagePrefabs;
 
-    private Dictionary<Vector2Int, bool> roadMap = new();         
-    private HashSet<Vector2Int> generatedTiles = new();           
+    private Dictionary<Vector2Int, bool> roadMap = new();
+    private HashSet<Vector2Int> generatedTiles = new();
+
+    private int roadSpacing = 4; // <- controls the grid size
 
     void Update()
     {
@@ -28,29 +30,37 @@ public class TerrainGenerator : MonoBehaviour
     void GenerateTilesAroundPlayer()
     {
         Vector2Int playerTile = WorldToTileCoords(player.position);
+        List<Vector2Int> tilesToGenerate = new();
 
+        // Phase 1: Plan which tiles to generate, and determine road intent
         for (int dx = -tileRange; dx <= tileRange; dx++)
         {
             for (int dz = -tileRange; dz <= tileRange; dz++)
             {
                 Vector2Int tileCoord = playerTile + new Vector2Int(dx, dz);
-
                 if (!generatedTiles.Contains(tileCoord))
                 {
-                    
+                    tilesToGenerate.Add(tileCoord);
+
                     if (!roadMap.ContainsKey(tileCoord))
                         roadMap[tileCoord] = ComputeRoadDesire(tileCoord.x, tileCoord.y);
-
-                   
-                    GenerateTerrain(tileCoord);
-
-                  
-                    if (roadMap[tileCoord])
-                        GenerateRoad(tileCoord);
-
-                    generatedTiles.Add(tileCoord);
                 }
             }
+        }
+
+        // Phase 2: Generate terrain (buildings or parks)
+        foreach (var tileCoord in tilesToGenerate)
+        {
+            GenerateTerrain(tileCoord);
+        }
+
+        // Phase 3: Generate roads based on full roadMap knowledge
+        foreach (var tileCoord in tilesToGenerate)
+        {
+            if (roadMap[tileCoord])
+                GenerateRoad(tileCoord);
+
+            generatedTiles.Add(tileCoord);
         }
     }
 
@@ -61,18 +71,23 @@ public class TerrainGenerator : MonoBehaviour
         return new Vector2Int(x, z);
     }
 
+    /// <summary>
+    /// Returns true if this tile should contain a road, aligned to a clean grid.
+    /// </summary>
     bool ComputeRoadDesire(int x, int z)
     {
-        
-        float noise = Mathf.PerlinNoise(x * 0.2f, z * 0.2f);
-        return (x % 3 == 0 || z % 3 == 0) && noise > 0.3f;
+        return x % roadSpacing == 0 || z % roadSpacing == 0;
     }
 
     void GenerateTerrain(Vector2Int tileCoord)
     {
         Vector3 position = new Vector3(tileCoord.x * tileSize, 0, tileCoord.y * tileSize);
-        bool isBuilding = Random.value > 0.5f;
 
+        // If this tile is a road, skip terrain generation (or only place side decorations)
+        if (roadMap.ContainsKey(tileCoord) && roadMap[tileCoord])
+            return;
+
+        bool isBuilding = Random.value > 0.5f;
         GameObject[] pool = isBuilding ? buildingPrefabs : parkPrefabs;
         if (pool.Length == 0) return;
 
@@ -111,15 +126,10 @@ public class TerrainGenerator : MonoBehaviour
         }
         else if (count == 2)
         {
-            if (north && south)
+            if ((north && south) || (east && west))
             {
                 prefab = roadStraight;
-                rot = Quaternion.identity;
-            }
-            else if (east && west)
-            {
-                prefab = roadStraight;
-                rot = Quaternion.Euler(0, 90, 0);
+                rot = (north && south) ? Quaternion.identity : Quaternion.Euler(0, 90, 0);
             }
             else
             {
@@ -140,7 +150,8 @@ public class TerrainGenerator : MonoBehaviour
         }
         else
         {
-          return;
+            // No valid connection — skip
+            return;
         }
 
         Instantiate(prefab, position, rot, transform);
@@ -159,4 +170,3 @@ public class TerrainGenerator : MonoBehaviour
         }
     }
 }
-

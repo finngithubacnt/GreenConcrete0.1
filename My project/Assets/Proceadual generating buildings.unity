@@ -404,7 +404,7 @@ MonoBehaviour:
   - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
   - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
   parkPrefabs:
-  - {fileID: 734024470713303355, guid: a4534828c4c3ca9448a67a52ab34f6c3, type: 3}
+  - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
   roadStraight: {fileID: 1540305046205733120, guid: 8cb475b4c9eaacb42804f95cef29a194, type: 3}
   roadCorner: {fileID: 6622904360314032064, guid: 4accef6bf6346e6439ba6d2bd95d65f5, type: 3}
   roadTJunction: {fileID: 1540305046205733120, guid: 54544b60ee946724c9dacfc60807309b, type: 3}
@@ -576,5 +576,5 @@ SceneRoots:
   m_Roots:
   - {fileID: 511133433}
   - {fileID: 1533588642}
-  - {fileID: 903678176}
   - {fileID: 1617888279}
+  - {fileID: 903678176}

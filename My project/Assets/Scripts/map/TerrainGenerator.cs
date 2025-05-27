@@ -5,7 +5,7 @@ public class TerrainGenerator : MonoBehaviour
 {
     public Transform player;
     public float tileSize = 20f;
-    public int tileRange = 2; // How many tiles around the player to generate
+    public int tileRange = 2; 
 
     public GameObject[] buildingPrefabs;
     public GameObject[] parkPrefabs;
@@ -17,8 +17,8 @@ public class TerrainGenerator : MonoBehaviour
 
     public GameObject[] foliagePrefabs;
 
-    private Dictionary<Vector2Int, bool> roadMap = new();         // Tracks road presence
-    private HashSet<Vector2Int> generatedTiles = new();           // Tracks generated tiles
+    private Dictionary<Vector2Int, bool> roadMap = new();         
+    private HashSet<Vector2Int> generatedTiles = new();           
 
     void Update()
     {
@@ -37,14 +37,14 @@ public class TerrainGenerator : MonoBehaviour
 
                 if (!generatedTiles.Contains(tileCoord))
                 {
-                    // STEP 1: Decide if this tile wants to be a road (global decision only once)
+                    
                     if (!roadMap.ContainsKey(tileCoord))
                         roadMap[tileCoord] = ComputeRoadDesire(tileCoord.x, tileCoord.y);
 
-                    // STEP 2: Generate terrain always
+                   
                     GenerateTerrain(tileCoord);
 
-                    // STEP 3: Overlay road only if it was globally flagged
+                  
                     if (roadMap[tileCoord])
                         GenerateRoad(tileCoord);
 
@@ -63,7 +63,7 @@ public class TerrainGenerator : MonoBehaviour
 
     bool ComputeRoadDesire(int x, int z)
     {
-        // Slight grid tendency with randomness
+        
         float noise = Mathf.PerlinNoise(x * 0.2f, z * 0.2f);
         return (x % 3 == 0 || z % 3 == 0) && noise > 0.3f;
     }
@@ -140,8 +140,7 @@ public class TerrainGenerator : MonoBehaviour
         }
         else
         {
-            // Optional: Don't spawn a road if it has no neighbors
-            return;
+          return;
         }
 
         Instantiate(prefab, position, rot, transform);

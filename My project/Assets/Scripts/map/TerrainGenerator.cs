@@ -20,7 +20,7 @@ public class TerrainGenerator : MonoBehaviour
     private Dictionary<Vector2Int, bool> roadMap = new();
     private HashSet<Vector2Int> generatedTiles = new();
 
-    private int roadSpacing = 4; // <- controls the grid size
+    public int roadSpacing = 4; 
 
     void Update()
     {
@@ -71,19 +71,16 @@ public class TerrainGenerator : MonoBehaviour
         return new Vector2Int(x, z);
     }
 
-    /// <summary>
-    /// Returns true if this tile should contain a road, aligned to a clean grid.
-    /// </summary>
     bool ComputeRoadDesire(int x, int z)
     {
-        return x % roadSpacing == 0 || z % roadSpacing == 0;
+        return x % roadSpacing == 0 || z % roadSpacing == 10;
     }
 
     void GenerateTerrain(Vector2Int tileCoord)
     {
         Vector3 position = new Vector3(tileCoord.x * tileSize, 0, tileCoord.y * tileSize);
 
-        // If this tile is a road, skip terrain generation (or only place side decorations)
+       
         if (roadMap.ContainsKey(tileCoord) && roadMap[tileCoord])
             return;
 

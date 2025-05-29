@@ -414,7 +414,8 @@ MonoBehaviour:
   roadIntersection: {fileID: 5963825072579061199, guid: 881dae6cd266f5241a5aada0fdab5c04, type: 3}
   foliagePrefabs:
   - {fileID: 4955032384086150004, guid: a4c51f62658541246b5006114f26fa02, type: 3}
-  roadSpacing: 1
+  breakProbability: 0.5
+  perlinScale: 0.3
 --- !u!4 &946372506 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6792136107597336930, guid: c00ef642da9800143bdd0da694af4c1d, type: 3}

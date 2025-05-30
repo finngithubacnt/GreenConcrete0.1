@@ -1,215 +1,158 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
-public class SmartCityGenerator : MonoBehaviour
+public class CityGenerator : MonoBehaviour
 {
+    [Header("Settings")]
+    public float tileSize = 10f;
+    public int generationRadius = 5;
+
+    [Header("Prefabs")]
+    public GameObject tilePrefab;
+    public GameObject roadStraightPrefab;
+    public GameObject roadCornerPrefab;
+    public GameObject roadTJunctionPrefab;
+    public GameObject roadIntersectionPrefab;
+    public GameObject roadStraightConnectorPrefab; // Elbow-sized straight connector
+
+    [Header("Player Reference")]
     public Transform player;
-    public float tileSize = 20f;
-    public int tileRange = 2;
 
-    public GameObject[] buildingPrefabs;
-    public GameObject[] parkPrefabs;
+    private Dictionary<Vector2Int, RoadTile> roadMap = new Dictionary<Vector2Int, RoadTile>();
+    private HashSet<Vector2Int> generatedTiles = new HashSet<Vector2Int>();
+    private Vector2Int currentPlayerTile = Vector2Int.zero;
 
-    public GameObject roadStraight;
-    public GameObject roadCorner;
-    public GameObject roadTJunction;
-    public GameObject roadIntersection;
-
-    public GameObject[] foliagePrefabs;
-
-    [Header("Grid Control")]
-    public float breakProbability = 0.2f;
-    public float perlinScale = 0.1f;
-
-    private HashSet<Vector2Int> generatedTiles = new();
-    private Dictionary<Vector2Int, RoadConnection> connectionMap = new();
-
-    void Update()
+    void Start()
     {
-        GenerateTilesAroundPlayer();
-    }
-
-    void GenerateTilesAroundPlayer()
-    {
-        Vector2Int center = WorldToTileCoords(player.position);
-
-        for (int dx = -tileRange; dx <= tileRange; dx++)
+        if (player == null)
         {
-            for (int dz = -tileRange; dz <= tileRange; dz++)
-            {
-                Vector2Int coord = center + new Vector2Int(dx, dz);
-                if (generatedTiles.Contains(coord)) continue;
-
-                EvaluateConnections(coord);
-                GenerateTerrain(coord);
-                GenerateRoad(coord);
-
-                generatedTiles.Add(coord);
-            }
-        }
-    }
-
-    Vector2Int WorldToTileCoords(Vector3 pos)
-    {
-        int x = Mathf.FloorToInt(pos.x / tileSize);
-        int z = Mathf.FloorToInt(pos.z / tileSize);
-        return new Vector2Int(x, z);
-    }
-
-    void EvaluateConnections(Vector2Int coord)
-    {
-        RoadConnection conn = new();
-
-        foreach (Direction dir in System.Enum.GetValues(typeof(Direction)))
-        {
-            Vector2Int neighbor = coord + DirectionOffset(dir);
-            if (!connectionMap.ContainsKey(neighbor))
-            {
-                // Evaluate neighbor to maintain bidirectional logic
-                RoadConnection temp = new();
-                temp.Connect(Opposite(dir), ShouldConnect(coord, neighbor, dir));
-                connectionMap[neighbor] = temp;
-            }
-
-            if (connectionMap[neighbor].HasConnection(Opposite(dir)))
-                conn.Connect(dir);
-        }
-
-        connectionMap[coord] = conn;
-    }
-
-    bool ShouldConnect(Vector2Int from, Vector2Int to, Direction dir)
-    {
-        float noise = Mathf.PerlinNoise(to.x * perlinScale, to.y * perlinScale);
-        return noise > breakProbability;
-    }
-
-    void GenerateTerrain(Vector2Int coord)
-    {
-        Vector3 pos = new Vector3(coord.x * tileSize, 0, coord.y * tileSize);
-
-        bool isPark = Random.value < 0.3f;
-        GameObject[] pool = isPark ? parkPrefabs : buildingPrefabs;
-        if (pool.Length == 0) return;
-
-        GameObject prefab = pool[Random.Range(0, pool.Length)];
-        GameObject tile = Instantiate(prefab, pos, Quaternion.identity, transform);
-        AddFoliage(tile.transform, pos);
-    }
-
-    void GenerateRoad(Vector2Int coord)
-    {
-        if (!connectionMap.ContainsKey(coord)) return;
-
-        Vector3 pos = new Vector3(coord.x * tileSize, 0, coord.y * tileSize);
-        RoadConnection conn = connectionMap[coord];
-        GameObject roadPrefab = null;
-        Quaternion rotation = Quaternion.identity;
-
-        int count = conn.Count;
-
-        if (count == 4)
-        {
-            roadPrefab = roadIntersection;
-        }
-        else if (count == 3)
-        {
-            roadPrefab = roadTJunction;
-            if (!conn.north) rotation = Quaternion.Euler(0, 180, 0);
-            else if (!conn.east) rotation = Quaternion.Euler(0, 270, 0);
-            else if (!conn.south) rotation = Quaternion.identity;
-            else if (!conn.west) rotation = Quaternion.Euler(0, 90, 0);
-        }
-        else if (count == 2)
-        {
-            if ((conn.north && conn.south) || (conn.east && conn.west))
-            {
-                roadPrefab = roadStraight;
-                rotation = (conn.east && conn.west) ? Quaternion.Euler(0, 90, 0) : Quaternion.identity;
-            }
-            else
-            {
-                roadPrefab = roadCorner;
-                if (conn.north && conn.east) rotation = Quaternion.Euler(0, 0, 0);
-                else if (conn.east && conn.south) rotation = Quaternion.Euler(0, 90, 0);
-                else if (conn.south && conn.west) rotation = Quaternion.Euler(0, 180, 0);
-                else if (conn.west && conn.north) rotation = Quaternion.Euler(0, 270, 0);
-            }
-        }
-        else if (count == 1)
-        {
-            // If it connects to just one other road, use a straight road
-            roadPrefab = roadStraight;
-            if (conn.north) rotation = Quaternion.identity;
-            else if (conn.east) rotation = Quaternion.Euler(0, 90, 0);
-            else if (conn.south) rotation = Quaternion.Euler(0, 180, 0);
-            else if (conn.west) rotation = Quaternion.Euler(0, 270, 0);
-        }
-        else
-        {
-            // Optional: skip or place a dirt path
+            Debug.LogError("Assign the player Transform to the CityGenerator.");
+            enabled = false;
             return;
         }
 
-        Instantiate(roadPrefab, pos, rotation, transform);
+        UpdateGeneration();
     }
 
-    void AddFoliage(Transform parent, Vector3 basePosition)
+    void Update()
     {
-        if (foliagePrefabs.Length == 0) return;
+        Vector2Int playerTile = GetTileCoord(player.position);
 
-        int count = Random.Range(2, 5);
-        for (int i = 0; i < count; i++)
+        if (playerTile != currentPlayerTile)
         {
-            GameObject f = foliagePrefabs[Random.Range(0, foliagePrefabs.Length)];
-            Vector3 pos = basePosition + new Vector3(Random.Range(1f, tileSize - 1), 0, Random.Range(1f, tileSize - 1));
-            Instantiate(f, pos, Quaternion.Euler(0, Random.Range(0, 360), 0), parent);
+            currentPlayerTile = playerTile;
+            UpdateGeneration();
         }
     }
 
-    enum Direction { North, East, South, West }
-
-    Direction Opposite(Direction d) => d switch
+    Vector2Int GetTileCoord(Vector3 position)
     {
-        Direction.North => Direction.South,
-        Direction.South => Direction.North,
-        Direction.East => Direction.West,
-        Direction.West => Direction.East,
-        _ => d
-    };
+        int x = Mathf.FloorToInt(position.x / tileSize);
+        int z = Mathf.FloorToInt(position.z / tileSize);
+        return new Vector2Int(x, z);
+    }
 
-    Vector2Int DirectionOffset(Direction d) => d switch
+    void UpdateGeneration()
     {
-        Direction.North => new Vector2Int(0, 1),
-        Direction.South => new Vector2Int(0, -1),
-        Direction.East => new Vector2Int(1, 0),
-        Direction.West => new Vector2Int(-1, 0),
-        _ => Vector2Int.zero
-    };
+        Vector2Int center = GetTileCoord(player.position);
+        roadMap.Clear();
+        generatedTiles.Clear();
 
-    class RoadConnection
-    {
-        public bool north, east, south, west;
-        public int Count => (north ? 1 : 0) + (east ? 1 : 0) + (south ? 1 : 0) + (west ? 1 : 0);
-
-        public void Connect(Direction d, bool value = true)
+        // Step 1: Generate roadMap based on radius
+        for (int x = -generationRadius; x <= generationRadius; x++)
         {
-            switch (d)
+            for (int z = -generationRadius; z <= generationRadius; z++)
             {
-                case Direction.North: north = value; break;
-                case Direction.East: east = value; break;
-                case Direction.South: south = value; break;
-                case Direction.West: west = value; break;
+                Vector2Int pos = center + new Vector2Int(x, z);
+                if (!roadMap.ContainsKey(pos))
+                    roadMap[pos] = new RoadTile();
+
+                // Connect right
+                Vector2Int rightPos = pos + Vector2Int.right;
+                if (Random.value > 0.4f)
+                {
+                    roadMap[pos].right = true;
+                    if (!roadMap.ContainsKey(rightPos)) roadMap[rightPos] = new RoadTile();
+                    roadMap[rightPos].left = true;
+                }
+
+                // Connect up
+                Vector2Int upPos = pos + Vector2Int.up;
+                if (Random.value > 0.4f)
+                {
+                    roadMap[pos].up = true;
+                    if (!roadMap.ContainsKey(upPos)) roadMap[upPos] = new RoadTile();
+                    roadMap[upPos].down = true;
+                }
             }
         }
 
-        public bool HasConnection(Direction d) => d switch
+        // Step 2: Generate tiles + roads
+        foreach (var kvp in roadMap)
         {
-            Direction.North => north,
-            Direction.East => east,
-            Direction.South => south,
-            Direction.West => west,
-            _ => false
-        };
+            Vector2Int pos = kvp.Key;
+            RoadTile tile = kvp.Value;
+
+            // Limit to generation radius
+            if (Vector2Int.Distance(pos, center) > generationRadius)
+                continue;
+
+            Vector3 worldPos = new Vector3(pos.x * tileSize, 0, pos.y * tileSize);
+
+            if (!generatedTiles.Contains(pos))
+            {
+                Instantiate(tilePrefab, worldPos, Quaternion.identity, transform);
+                generatedTiles.Add(pos);
+            }
+
+            // Road connectors
+            int connections = (tile.up ? 1 : 0) + (tile.down ? 1 : 0) + (tile.left ? 1 : 0) + (tile.right ? 1 : 0);
+
+            if (connections == 2 && tile.up && tile.down && !tile.left && !tile.right)
+                Instantiate(roadStraightConnectorPrefab, worldPos, Quaternion.identity, transform);
+            else if (connections == 2 && tile.left && tile.right && !tile.up && !tile.down)
+                Instantiate(roadStraightConnectorPrefab, worldPos, Quaternion.Euler(0, 90, 0), transform);
+            else if (connections == 4)
+                Instantiate(roadIntersectionPrefab, worldPos, Quaternion.identity, transform);
+            else if (connections == 3)
+            {
+                if (!tile.up)
+                    Instantiate(roadTJunctionPrefab, worldPos, Quaternion.Euler(0, 180, 0), transform);
+                else if (!tile.down)
+                    Instantiate(roadTJunctionPrefab, worldPos, Quaternion.identity, transform);
+                else if (!tile.left)
+                    Instantiate(roadTJunctionPrefab, worldPos, Quaternion.Euler(0, 90, 0), transform);
+                else
+                    Instantiate(roadTJunctionPrefab, worldPos, Quaternion.Euler(0, -90, 0), transform);
+            }
+            else if (connections == 2)
+            {
+                if (tile.up && tile.right)
+                    Instantiate(roadCornerPrefab, worldPos, Quaternion.identity, transform);
+                else if (tile.right && tile.down)
+                    Instantiate(roadCornerPrefab, worldPos, Quaternion.Euler(0, 90, 0), transform);
+                else if (tile.down && tile.left)
+                    Instantiate(roadCornerPrefab, worldPos, Quaternion.Euler(0, 180, 0), transform);
+                else if (tile.left && tile.up)
+                    Instantiate(roadCornerPrefab, worldPos, Quaternion.Euler(0, -90, 0), transform);
+            }
+
+            // Road edges
+            if (tile.up)
+            {
+                Vector3 posUp = worldPos + new Vector3(0, 0, tileSize / 2f);
+                Instantiate(roadStraightPrefab, posUp, Quaternion.identity, transform);
+            }
+            if (tile.right)
+            {
+                Vector3 posRight = worldPos + new Vector3(tileSize / 2f, 0, 0);
+                Instantiate(roadStraightPrefab, posRight, Quaternion.Euler(0, 90, 0), transform);
+            }
+        }
+    }
+
+    public class RoadTile
+    {
+        public bool up, down, left, right;
     }
 }

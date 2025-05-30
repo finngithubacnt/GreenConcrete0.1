@@ -395,32 +395,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77812299465fb3742b09b623b3609327, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  player: {fileID: 946372506}
+  gridSize: 10
   tileSize: 150
-  tileRange: 5
-  buildingPrefabs:
-  - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
-  - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
-  - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
-  - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
-  parkPrefabs:
-  - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
-  - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
-  - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
-  - {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
-  roadStraight: {fileID: 1540305046205733120, guid: 8cb475b4c9eaacb42804f95cef29a194, type: 3}
-  roadCorner: {fileID: 6622904360314032064, guid: 4accef6bf6346e6439ba6d2bd95d65f5, type: 3}
-  roadTJunction: {fileID: 1540305046205733120, guid: 54544b60ee946724c9dacfc60807309b, type: 3}
-  roadIntersection: {fileID: 5963825072579061199, guid: 881dae6cd266f5241a5aada0fdab5c04, type: 3}
-  foliagePrefabs:
-  - {fileID: 4955032384086150004, guid: a4c51f62658541246b5006114f26fa02, type: 3}
-  breakProbability: 0.5
-  perlinScale: 0.3
---- !u!4 &946372506 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6792136107597336930, guid: c00ef642da9800143bdd0da694af4c1d, type: 3}
-  m_PrefabInstance: {fileID: 1533588642}
-  m_PrefabAsset: {fileID: 0}
+  tilePrefab: {fileID: 5297215993517889644, guid: b5563294c0b9b8f4db7e6f73356e4244, type: 3}
+  roadStraightPrefab: {fileID: 1540305046205733120, guid: 8cb475b4c9eaacb42804f95cef29a194, type: 3}
+  roadCornerPrefab: {fileID: 6622904360314032064, guid: 4accef6bf6346e6439ba6d2bd95d65f5, type: 3}
+  roadTJunctionPrefab: {fileID: 1540305046205733120, guid: 54544b60ee946724c9dacfc60807309b, type: 3}
+  roadIntersectionPrefab: {fileID: 5963825072579061199, guid: 881dae6cd266f5241a5aada0fdab5c04, type: 3}
+  roadStraightConnectorPrefab: {fileID: 1540305046205733120, guid: cb4664ae007ebc84c841a9a13208beaa, type: 3}
 --- !u!1001 &1533588642
 PrefabInstance:
   m_ObjectHideFlags: 0

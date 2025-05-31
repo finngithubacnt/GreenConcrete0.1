@@ -15,6 +15,9 @@ public class CityGenerator : MonoBehaviour
     public GameObject roadIntersectionPrefab;
     public GameObject roadStraightConnectorPrefab;
 
+    [Header("Buildings")]
+    public GameObject buildingCornerPrefab;
+
     [Header("Player Reference")]
     public Transform player;
 
@@ -57,35 +60,52 @@ public class CityGenerator : MonoBehaviour
     {
         Vector2Int center = GetTileCoord(player.position);
 
-        // Step 1: Build road map
+        // Step 1: Build road map with consistent decisions
         for (int x = -generationRadius; x <= generationRadius; x++)
         {
             for (int z = -generationRadius; z <= generationRadius; z++)
             {
                 Vector2Int pos = center + new Vector2Int(x, z);
-                if (!roadMap.ContainsKey(pos)) roadMap[pos] = new RoadTile();
+                if (!roadMap.ContainsKey(pos))
+                    roadMap[pos] = new RoadTile();
 
-                // Chance to create road right
+                RoadTile current = roadMap[pos];
+
+                // Check or decide right connection
                 Vector2Int right = pos + Vector2Int.right;
-                if (Random.value > 0.4f)
+                if (!roadMap.ContainsKey(right))
+                    roadMap[right] = new RoadTile();
+
+                RoadTile neighborRight = roadMap[right];
+                if (!current.hasRightDecided)
                 {
-                    roadMap[pos].right = true;
-                    if (!roadMap.ContainsKey(right)) roadMap[right] = new RoadTile();
-                    roadMap[right].left = true;
+                    bool connect = Random.value > 0.4f;
+                    current.right = connect;
+                    current.hasRightDecided = true;
+
+                    neighborRight.left = connect;
+                    neighborRight.hasLeftDecided = true;
                 }
 
-                // Chance to create road up
+                // Check or decide up connection
                 Vector2Int up = pos + Vector2Int.up;
-                if (Random.value > 0.4f)
+                if (!roadMap.ContainsKey(up))
+                    roadMap[up] = new RoadTile();
+
+                RoadTile neighborUp = roadMap[up];
+                if (!current.hasUpDecided)
                 {
-                    roadMap[pos].up = true;
-                    if (!roadMap.ContainsKey(up)) roadMap[up] = new RoadTile();
-                    roadMap[up].down = true;
+                    bool connect = Random.value > 0.4f;
+                    current.up = connect;
+                    current.hasUpDecided = true;
+
+                    neighborUp.down = connect;
+                    neighborUp.hasDownDecided = true;
                 }
             }
         }
 
-        // Step 2: Generate visual content
+        // Step 2: Generate visuals
         foreach (var kvp in roadMap)
         {
             Vector2Int pos = kvp.Key;
@@ -96,35 +116,69 @@ public class CityGenerator : MonoBehaviour
 
             Vector3 worldPos = new Vector3(pos.x * tileSize, 0, pos.y * tileSize);
 
-            // Generate tile if not already
+            // Place tile
             if (!generatedTiles.Contains(pos))
             {
                 Instantiate(tilePrefab, worldPos, Quaternion.identity, transform);
                 generatedTiles.Add(pos);
+
+                // Building on inside corner if it forms one
+                if ((tile.up && tile.right) ||
+                    (tile.right && tile.down) ||
+                    (tile.down && tile.left) ||
+                    (tile.left && tile.up))
+                {
+                    Quaternion rotation = Quaternion.identity;
+                    Vector3 offset = Vector3.zero;
+
+                    if (tile.up && tile.right)
+                    {
+                        rotation = Quaternion.Euler(0, 0, 0);
+                        offset = new Vector3(tileSize / 4f, 0, tileSize / 4f);
+                    }
+                    else if (tile.right && tile.down)
+                    {
+                        rotation = Quaternion.Euler(0, 90, 0);
+                        offset = new Vector3(tileSize / 4f, 0, -tileSize / 4f);
+                    }
+                    else if (tile.down && tile.left)
+                    {
+                        rotation = Quaternion.Euler(0, 180, 0);
+                        offset = new Vector3(-tileSize / 4f, 0, -tileSize / 4f);
+                    }
+                    else if (tile.left && tile.up)
+                    {
+                        rotation = Quaternion.Euler(0, -90, 0);
+                        offset = new Vector3(-tileSize / 4f, 0, tileSize / 4f);
+                    }
+
+                    if (Random.value > 0.5f)
+                    {
+                        Vector3 buildingPos = worldPos + offset;
+                        Instantiate(buildingCornerPrefab, buildingPos, rotation, transform);
+                    }
+                }
             }
 
-            // Generate roads (on tile edges)
+            // Straight roads
             if (tile.up)
             {
                 Vector3 upPos = worldPos + new Vector3(0, 0, tileSize / 2f);
                 Instantiate(roadStraightPrefab, upPos, Quaternion.identity, transform);
             }
+
             if (tile.right)
             {
                 Vector3 rightPos = worldPos + new Vector3(tileSize / 2f, 0, 0);
                 Instantiate(roadStraightPrefab, rightPos, Quaternion.Euler(0, 90, 0), transform);
             }
 
-            // Generate connectors (once per grid point)
+            // Connectors
             if (!generatedConnectors.Contains(pos))
             {
                 int connections = (tile.up ? 1 : 0) + (tile.down ? 1 : 0) + (tile.left ? 1 : 0) + (tile.right ? 1 : 0);
 
-                if (connections == 2 && tile.up && tile.down)
-                    Instantiate(roadStraightConnectorPrefab, worldPos, Quaternion.identity, transform);
-                else if (connections == 2 && tile.left && tile.right)
-                    Instantiate(roadStraightConnectorPrefab, worldPos, Quaternion.Euler(0, 90, 0), transform);
-                else if (connections == 4)
+                if (connections == 4)
                     Instantiate(roadIntersectionPrefab, worldPos, Quaternion.identity, transform);
                 else if (connections == 3)
                 {
@@ -139,7 +193,11 @@ public class CityGenerator : MonoBehaviour
                 }
                 else if (connections == 2)
                 {
-                    if (tile.up && tile.right)
+                    if (tile.up && tile.down)
+                        Instantiate(roadStraightConnectorPrefab, worldPos, Quaternion.identity, transform);
+                    else if (tile.left && tile.right)
+                        Instantiate(roadStraightConnectorPrefab, worldPos, Quaternion.Euler(0, 90, 0), transform);
+                    else if (tile.up && tile.right)
                         Instantiate(roadCornerPrefab, worldPos, Quaternion.identity, transform);
                     else if (tile.right && tile.down)
                         Instantiate(roadCornerPrefab, worldPos, Quaternion.Euler(0, 90, 0), transform);
@@ -157,5 +215,6 @@ public class CityGenerator : MonoBehaviour
     public class RoadTile
     {
         public bool up, down, left, right;
+        public bool hasUpDecided, hasDownDecided, hasLeftDecided, hasRightDecided;
     }
 }

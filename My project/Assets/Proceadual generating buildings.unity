@@ -377,7 +377,7 @@ Transform:
   m_GameObject: {fileID: 903678175}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 1.8, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -403,6 +403,7 @@ MonoBehaviour:
   roadTJunctionPrefab: {fileID: 1540305046205733120, guid: 54544b60ee946724c9dacfc60807309b, type: 3}
   roadIntersectionPrefab: {fileID: 5963825072579061199, guid: 881dae6cd266f5241a5aada0fdab5c04, type: 3}
   roadStraightConnectorPrefab: {fileID: 1540305046205733120, guid: cb4664ae007ebc84c841a9a13208beaa, type: 3}
+  buildingCornerPrefab: {fileID: 7754718339729149034, guid: a962e11e46cf5d2448790a73eb666d0f, type: 3}
   player: {fileID: 946372506}
 --- !u!4 &946372506 stripped
 Transform:

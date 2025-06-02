@@ -403,16 +403,15 @@ MonoBehaviour:
   connectorStraightConnector: {fileID: 1540305046205733120, guid: cb4664ae007ebc84c841a9a13208beaa, type: 3}
   tileTypes:
   - typeName: City Block
-    weight: 0.828
+    weight: 0.7
     tilePrefabs:
-    - {fileID: 734024470713303355, guid: be8ca6460961d0049908c7b367cec1e9, type: 3}
-    - {fileID: 734024470713303355, guid: 69969412a22348649b9ef1d2b0c2bdd0, type: 3}
+    - {fileID: 7754718339729149034, guid: a962e11e46cf5d2448790a73eb666d0f, type: 3}
   - typeName: Parking Lot
-    weight: 0.136
+    weight: 0.15
     tilePrefabs:
     - {fileID: 0}
   - typeName: Park
-    weight: 0.187
+    weight: 0.15
     tilePrefabs:
     - {fileID: 0}
   tileSize: 150

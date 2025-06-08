@@ -1,6 +1,237 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+public class OverGrownCityGenerator : MonoBehaviour
+{
+    public Transform player;
+    public int renderRadius = 10;
+    public float tileSize = 10f;
+
+    public GameObject roadStraight;
+    public GameObject roadElbow;
+    public GameObject roadTJunction;
+    public GameObject roadIntersection;
+
+    public List<TileType> tileTypes;
+
+    private Dictionary<Vector2Int, TileData> generatedTiles = new Dictionary<Vector2Int, TileData>();
+    private HashSet<Vector2Int> roadPositions = new HashSet<Vector2Int>();
+
+    void Update()
+    {
+        Vector2Int playerTile = WorldToTilePos(player.position);
+        for (int x = -renderRadius; x <= renderRadius; x++)
+        {
+            for (int y = -renderRadius; y <= renderRadius; y++)
+            {
+                Vector2Int tilePos = new Vector2Int(playerTile.x + x, playerTile.y + y);
+                if (!generatedTiles.ContainsKey(tilePos))
+                {
+                    GenerateTile(tilePos);
+                }
+            }
+        }
+    }
+
+    Vector2Int WorldToTilePos(Vector3 worldPos)
+    {
+        return new Vector2Int(
+            Mathf.FloorToInt(worldPos.x / tileSize),
+            Mathf.FloorToInt(worldPos.z / tileSize)
+        );
+    }
+
+    void GenerateTile(Vector2Int pos)
+    {
+        TileType selectedType = ChooseTileType();
+        Vector3 worldPos = new Vector3(pos.x * tileSize, 0, pos.y * tileSize);
+
+        GameObject tile = Instantiate(selectedType.baseTilePrefab, worldPos, Quaternion.identity, transform);
+
+        TileData data = new TileData
+        {
+            tileType = selectedType,
+            tileObject = tile
+        };
+
+        generatedTiles[pos] = data;
+
+        // Road decisions
+        data.up = Random.value > 0.3f;
+        data.down = Random.value > 0.3f;
+        data.left = Random.value > 0.3f;
+        data.right = Random.value > 0.3f;
+
+        if (data.up) roadPositions.Add(pos + Vector2Int.up);
+        if (data.down) roadPositions.Add(pos + Vector2Int.down);
+        if (data.left) roadPositions.Add(pos + Vector2Int.left);
+        if (data.right) roadPositions.Add(pos + Vector2Int.right);
+
+        PlaceSideRoads(pos, data);
+        PlaceCornerConnectors(pos);
+        PlaceTileBehaviorObjects(pos, selectedType, data);
+    }
+
+    TileType ChooseTileType()
+    {
+        float totalWeight = 0f;
+        foreach (var type in tileTypes) totalWeight += type.weight;
+
+        float rand = Random.Range(0, totalWeight);
+        float current = 0f;
+
+        foreach (var type in tileTypes)
+        {
+            current += type.weight;
+            if (rand <= current)
+                return type;
+        }
+
+        return tileTypes[0];
+    }
+
+    void PlaceSideRoads(Vector2Int pos, TileData data)
+    {
+        Vector3 basePos = new Vector3(pos.x * tileSize, 0, pos.y * tileSize);
+
+        if (data.up)
+            Instantiate(roadStraight, basePos + new Vector3(0, 0, tileSize / 2), Quaternion.identity, transform);
+        if (data.down)
+            Instantiate(roadStraight, basePos + new Vector3(0, 0, -tileSize / 2), Quaternion.Euler(0, 180, 0), transform);
+        if (data.left)
+            Instantiate(roadStraight, basePos + new Vector3(-tileSize / 2, 0, 0), Quaternion.Euler(0, 90, 0), transform);
+        if (data.right)
+            Instantiate(roadStraight, basePos + new Vector3(tileSize / 2, 0, 0), Quaternion.Euler(0, -90, 0), transform);
+    }
+
+    void PlaceCornerConnectors(Vector2Int pos)
+    {
+        Vector2Int[] corners = {
+            pos,
+            pos + Vector2Int.up,
+            pos + Vector2Int.right,
+            pos + Vector2Int.up + Vector2Int.right
+        };
+
+        foreach (var corner in corners)
+        {
+            if (generatedTiles.ContainsKey(corner)) continue;
+
+            bool up = roadPositions.Contains(corner + Vector2Int.up);
+            bool down = roadPositions.Contains(corner + Vector2Int.down);
+            bool left = roadPositions.Contains(corner + Vector2Int.left);
+            bool right = roadPositions.Contains(corner + Vector2Int.right);
+
+            int connections = 0;
+            if (up) connections++;
+            if (down) connections++;
+            if (left) connections++;
+            if (right) connections++;
+
+            Vector3 connectorPos = new Vector3(corner.x * tileSize, 0, corner.y * tileSize);
+
+            if (connections == 4)
+                Instantiate(roadIntersection, connectorPos, Quaternion.identity, transform);
+            else if (connections == 3)
+            {
+                if (!up)
+                    Instantiate(roadTJunction, connectorPos, Quaternion.Euler(0, 180, 0), transform);
+                else if (!down)
+                    Instantiate(roadTJunction, connectorPos, Quaternion.identity, transform);
+                else if (!left)
+                    Instantiate(roadTJunction, connectorPos, Quaternion.Euler(0, 90, 0), transform);
+                else
+                    Instantiate(roadTJunction, connectorPos, Quaternion.Euler(0, -90, 0), transform);
+            }
+            else if (connections == 2)
+            {
+                if ((up && down) || (left && right))
+                    return;
+
+                if (up && right)
+                    Instantiate(roadElbow, connectorPos, Quaternion.identity, transform);
+                else if (right && down)
+                    Instantiate(roadElbow, connectorPos, Quaternion.Euler(0, 90, 0), transform);
+                else if (down && left)
+                    Instantiate(roadElbow, connectorPos, Quaternion.Euler(0, 180, 0), transform);
+                else if (left && up)
+                    Instantiate(roadElbow, connectorPos, Quaternion.Euler(0, -90, 0), transform);
+            }
+
+            generatedTiles[corner] = new TileData(); // Placeholder to avoid re-spawning
+        }
+    }
+
+    void PlaceTileBehaviorObjects(Vector2Int pos, TileType tileType, TileData tileData)
+    {
+        if (tileType == null) return;
+
+        Vector3 basePos = new Vector3(pos.x * tileSize, 0, pos.y * tileSize);
+
+        switch (tileType.behavior)
+        {
+            case TileBehavior.CityBlock:
+                PlaceCityBlockBuildings(basePos, tileType, tileData);
+                break;
+
+            default:
+                TryPlaceTileProps(pos, tileType);
+                break;
+        }
+    }
+
+    void PlaceCityBlockBuildings(Vector3 basePos, TileType tileType, TileData tileData)
+    {
+        if (tileType.cityBlockBuildings == null || tileType.cityBlockBuildings.Length == 0) return;
+
+        float spacing = 4f;
+        float height = 0f;
+
+        List<Vector3> positions = new List<Vector3>();
+
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int z = -1; z <= 1; z++)
+            {
+                if ((z == 1 && tileData.up) || (x == 1 && tileData.right))
+                    continue;
+
+                Vector3 offset = new Vector3(x * spacing, height, z * spacing);
+                Vector3 spawnPos = basePos + offset;
+                positions.Add(spawnPos);
+            }
+        }
+
+        foreach (var pos in positions)
+        {
+            GameObject prefab = tileType.cityBlockBuildings[Random.Range(0, tileType.cityBlockBuildings.Length)];
+            Instantiate(prefab, pos, Quaternion.identity, transform);
+        }
+    }
+
+    void TryPlaceTileProps(Vector2Int pos, TileType tileType)
+    {
+        if (tileType.tilePropsPrefabs == null || tileType.tilePropsPrefabs.Length == 0) return;
+
+        Vector3 basePos = new Vector3(pos.x * tileSize, 0, pos.y * tileSize);
+
+        int propCount = Random.Range(1, 4);
+        for (int i = 0; i < propCount; i++)
+        {
+            Vector3 offset = new Vector3(Random.Range(-4f, 4f), 0, Random.Range(-4f, 4f));
+            GameObject propPrefab = tileType.tilePropsPrefabs[Random.Range(0, tileType.tilePropsPrefabs.Length)];
+            Instantiate(propPrefab, basePos + offset, Quaternion.identity, transform);
+        }
+    }
+}
+
+
+public enum TileBehavior
+{
+    None,
+    CityBlock,
+    Park,
+    ParkingLot,
+}
 
 [System.Serializable]
 public class TileType
@@ -10,192 +241,14 @@ public class TileType
     public float weight = 0.33f;
     public GameObject baseTilePrefab;
     public GameObject[] tilePropsPrefabs;
-}
-
-public class OvergrownCityGenerator : MonoBehaviour
-{
-    public int tileSize = 10;
-    public float roadChance = 0.5f;
-    public float generateRadius = 50f;
-    public Transform player;
-
-    public GameObject roadStraightPrefab;
-    public GameObject roadConnectorT;
-    public GameObject roadConnectorX;
-    public GameObject roadConnectorElbow;
-    public GameObject roadConnectorStraight;
-
-    public List<TileType> tileTypes = new List<TileType>();
-
-    private Dictionary<Vector2Int, TileData> tileGrid = new Dictionary<Vector2Int, TileData>();
-    private HashSet<Vector2Int> generatedTiles = new HashSet<Vector2Int>();
-
-    void Update()
-    {
-        GenerateTilesAroundPlayer();
-    }
-
-    void GenerateTilesAroundPlayer()
-    {
-        Vector2Int playerTile = new Vector2Int(
-            Mathf.FloorToInt(player.position.x / tileSize),
-            Mathf.FloorToInt(player.position.z / tileSize)
-        );
-
-        int radiusInTiles = Mathf.CeilToInt(generateRadius / tileSize);
-
-        for (int x = -radiusInTiles; x <= radiusInTiles; x++)
-        {
-            for (int y = -radiusInTiles; y <= radiusInTiles; y++)
-            {
-                Vector2Int tilePos = new Vector2Int(playerTile.x + x, playerTile.y + y);
-                if (!generatedTiles.Contains(tilePos))
-                {
-                    GenerateTile(tilePos);
-                }
-            }
-        }
-    }
-
-    void GenerateTile(Vector2Int pos)
-    {
-        Vector3 worldPos = new Vector3(pos.x * tileSize, 0, pos.y * tileSize);
-
-        TileData data = new TileData();
-        data.tileType = PickTileType();
-
-        // Instantiate tile base prefab
-        if (data.tileType != null && data.tileType.baseTilePrefab != null)
-        {
-            Instantiate(data.tileType.baseTilePrefab, worldPos, Quaternion.identity);
-        }
-
-        // Determine roads (straight)
-        float noise = Mathf.PerlinNoise(pos.x * 0.2f, pos.y * 0.2f);
-
-        if (noise > 0.3f && Random.value < roadChance)
-        {
-            data.up = true;
-            Instantiate(roadStraightPrefab, worldPos + new Vector3(0, 0, tileSize / 2f), Quaternion.identity);
-        }
-
-        if (noise < 0.7f && Random.value < roadChance)
-        {
-            data.right = true;
-            Instantiate(roadStraightPrefab, worldPos + new Vector3(tileSize / 2f, 0, 0), Quaternion.Euler(0, 90, 0));
-        }
-
-        tileGrid[pos] = data;
-        generatedTiles.Add(pos);
-
-        // Place tile props (like buildings, trees)
-        TryPlaceTileProps(pos, data.tileType);
-
-        // Try placing road connectors at 4 corners of this tile
-        TryPlaceConnectorsAtCorners(pos);
-    }
-
-    void TryPlaceTileProps(Vector2Int pos, TileType tileType)
-    {
-        if (tileType == null || tileType.tilePropsPrefabs == null || tileType.tilePropsPrefabs.Length == 0)
-            return;
-
-        Vector3 basePos = new Vector3(pos.x * tileSize, 0, pos.y * tileSize);
-        GameObject prefabToPlace = tileType.tilePropsPrefabs[Random.Range(0, tileType.tilePropsPrefabs.Length)];
-
-        Vector3 offset = new Vector3(tileSize / 4f, 0, tileSize / 4f); // Example offset for placing buildings inside tile
-        Instantiate(prefabToPlace, basePos + offset, Quaternion.identity);
-    }
-
-    void TryPlaceConnectorsAtCorners(Vector2Int tilePos)
-    {
-        // Evaluate 4 corners (bottom-left of current tile)
-        Vector2Int[] cornerOffsets = new Vector2Int[]
-        {
-            Vector2Int.zero,
-            new Vector2Int(0, 1),
-            new Vector2Int(1, 0),
-            new Vector2Int(1, 1)
-        };
-
-        foreach (Vector2Int offset in cornerOffsets)
-        {
-            Vector2Int cornerPos = tilePos + offset;
-            PlaceConnectorAtCorner(cornerPos);
-        }
-    }
-
-    void PlaceConnectorAtCorner(Vector2Int cornerPos)
-    {
-        bool up = tileGrid.ContainsKey(cornerPos) && tileGrid[cornerPos].up;
-        bool down = tileGrid.ContainsKey(cornerPos + Vector2Int.down) && tileGrid[cornerPos + Vector2Int.down].up;
-        bool left = tileGrid.ContainsKey(cornerPos + Vector2Int.left) && tileGrid[cornerPos + Vector2Int.left].right;
-        bool right = tileGrid.ContainsKey(cornerPos) && tileGrid[cornerPos].right;
-
-        int connections = 0;
-        if (up) connections++;
-        if (down) connections++;
-        if (left) connections++;
-        if (right) connections++;
-
-        Vector3 pos = new Vector3(cornerPos.x * tileSize, 0, cornerPos.y * tileSize);
-
-        if (connections == 4)
-        {
-            Instantiate(roadConnectorX, pos, Quaternion.identity);
-        }
-        else if (connections == 3)
-        {
-            if (!up) Instantiate(roadConnectorT, pos, Quaternion.Euler(0, 180, 0));
-            else if (!down) Instantiate(roadConnectorT, pos, Quaternion.identity);
-            else if (!left) Instantiate(roadConnectorT, pos, Quaternion.Euler(0, 90, 0));
-            else if (!right) Instantiate(roadConnectorT, pos, Quaternion.Euler(0, -90, 0));
-        }
-        else if (connections == 2)
-        {
-            if ((up && down) || (left && right))
-            {
-                Instantiate(roadConnectorStraight, pos, (up && down) ? Quaternion.identity : Quaternion.Euler(0, 90, 0));
-            }
-            else if (up && right)
-                Instantiate(roadConnectorElbow, pos, Quaternion.identity);
-            else if (right && down)
-                Instantiate(roadConnectorElbow, pos, Quaternion.Euler(0, 90, 0));
-            else if (down && left)
-                Instantiate(roadConnectorElbow, pos, Quaternion.Euler(0, 180, 0));
-            else if (left && up)
-                Instantiate(roadConnectorElbow, pos, Quaternion.Euler(0, 270, 0));
-        }
-        else if (connections == 1)
-        {
-            // Optional: could place dead-end connector
-        }
-    }
-
-    TileType PickTileType()
-    {
-        float totalWeight = 0f;
-        foreach (var type in tileTypes)
-        {
-            totalWeight += type.weight;
-        }
-
-        float rand = Random.value * totalWeight;
-        float cumulative = 0f;
-
-        foreach (var type in tileTypes)
-        {
-            cumulative += type.weight;
-            if (rand <= cumulative)
-                return type;
-        }
-
-        return tileTypes.Count > 0 ? tileTypes[0] : null;
-    }
+    public TileBehavior behavior = TileBehavior.None;
+    public GameObject[] cityBlockBuildings;
 }
 
 public class TileData
 {
-    public bool up, right;
     public TileType tileType;
+    public GameObject tileObject;
+    public bool up, down, left, right;
 }
+

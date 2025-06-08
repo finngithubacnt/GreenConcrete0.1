@@ -163,27 +163,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77812299465fb3742b09b623b3609327, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileSize: 150
-  roadChance: 0.5
-  generateRadius: 62.8
   player: {fileID: 1104232305}
-  roadStraightPrefab: {fileID: 1540305046205733120, guid: 8cb475b4c9eaacb42804f95cef29a194, type: 3}
-  roadConnectorT: {fileID: 1540305046205733120, guid: 54544b60ee946724c9dacfc60807309b, type: 3}
-  roadConnectorX: {fileID: 5963825072579061199, guid: 881dae6cd266f5241a5aada0fdab5c04, type: 3}
-  roadConnectorElbow: {fileID: 6622904360314032064, guid: 4accef6bf6346e6439ba6d2bd95d65f5, type: 3}
-  roadConnectorStraight: {fileID: 1540305046205733120, guid: cb4664ae007ebc84c841a9a13208beaa, type: 3}
+  renderRadius: 10
+  tileSize: 75
+  roadStraight: {fileID: 1540305046205733120, guid: 8cb475b4c9eaacb42804f95cef29a194, type: 3}
+  roadElbow: {fileID: 6622904360314032064, guid: 4accef6bf6346e6439ba6d2bd95d65f5, type: 3}
+  roadTJunction: {fileID: 1540305046205733120, guid: 54544b60ee946724c9dacfc60807309b, type: 3}
+  roadIntersection: {fileID: 5963825072579061199, guid: 881dae6cd266f5241a5aada0fdab5c04, type: 3}
   tileTypes:
-  - typeName: CityBlock
-    weight: 0.5
-    baseTilePrefab: {fileID: 8254159837054838976, guid: bdfb9262b62430f43b089c3d33b10e68, type: 3}
-    tilePropsPrefabs:
+  - typeName: 
+    weight: 1
+    baseTilePrefab: {fileID: 8254159837054838976, guid: 238e14e56d8f21645a4a5657d4f9585a, type: 3}
+    tilePropsPrefabs: []
+    behavior: 1
+    cityBlockBuildings:
     - {fileID: 7754718339729149034, guid: a962e11e46cf5d2448790a73eb666d0f, type: 3}
-    - {fileID: 7754718339729149034, guid: 5a36ac8ab77de914cb2dfa8853961f1b, type: 3}
-  - typeName: parking lot
-    weight: 0.5
-    baseTilePrefab: {fileID: 8254159837054838976, guid: bdfb9262b62430f43b089c3d33b10e68, type: 3}
-    tilePropsPrefabs:
-    - {fileID: 3519851022401329211, guid: 32421ed2c29c0e043a8fa6251b6962b2, type: 3}
 --- !u!4 &1104232305 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6792136107597336930, guid: c00ef642da9800143bdd0da694af4c1d, type: 3}

@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5195157518816623034}
   m_Layer: 0
-  m_Name: STRAIGHT
+  m_Name: STRAIGHT 2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -58,13 +58,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3951954065510510602}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.5, y: 0.5, z: 0.5, w: 0.5}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0.7071068, y: 0.000000014901159, z: 0.000000024544377, w: 0.7071068}
+  m_LocalPosition: {x: 2.1607148e-10, y: 0, z: 1.8180946e-10}
   m_LocalScale: {x: 30.8, y: 64, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5195157518816623034}
-  m_LocalEulerAnglesHint: {x: -90, y: 90, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!33 &8597939839858706558
 MeshFilter:
   m_ObjectHideFlags: 0

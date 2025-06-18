@@ -160,24 +160,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 903678175}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 77812299465fb3742b09b623b3609327, type: 3}
+  m_Script: {fileID: 11500000, guid: 5a5a69d79d4fb6947b282a9a3ff9e322, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gridSize: 14
+  tileSize: 150
   player: {fileID: 1104232305}
-  renderRadius: 10
-  tileSize: 75
-  roadStraight: {fileID: 1540305046205733120, guid: 8cb475b4c9eaacb42804f95cef29a194, type: 3}
-  roadElbow: {fileID: 6622904360314032064, guid: 4accef6bf6346e6439ba6d2bd95d65f5, type: 3}
-  roadTJunction: {fileID: 1540305046205733120, guid: 54544b60ee946724c9dacfc60807309b, type: 3}
-  roadIntersection: {fileID: 5963825072579061199, guid: 881dae6cd266f5241a5aada0fdab5c04, type: 3}
-  tileTypes:
-  - typeName: 
-    weight: 1
-    baseTilePrefab: {fileID: 8254159837054838976, guid: 238e14e56d8f21645a4a5657d4f9585a, type: 3}
-    tilePropsPrefabs: []
-    behavior: 1
-    cityBlockBuildings:
-    - {fileID: 7754718339729149034, guid: a962e11e46cf5d2448790a73eb666d0f, type: 3}
+  roadLongHorizontal: {fileID: 1540305046205733120, guid: 3e98ce590e4ed004f8d0421982fcaf84, type: 3}
+  roadLongVertical: {fileID: 1540305046205733120, guid: 8cb475b4c9eaacb42804f95cef29a194, type: 3}
+  elbow: {fileID: 6622904360314032064, guid: 4accef6bf6346e6439ba6d2bd95d65f5, type: 3}
+  tJunction: {fileID: 1540305046205733120, guid: 54544b60ee946724c9dacfc60807309b, type: 3}
+  intersection: {fileID: 5963825072579061199, guid: 881dae6cd266f5241a5aada0fdab5c04, type: 3}
+  straightConnector: {fileID: 1540305046205733120, guid: cb4664ae007ebc84c841a9a13208beaa, type: 3}
 --- !u!4 &1104232305 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6792136107597336930, guid: c00ef642da9800143bdd0da694af4c1d, type: 3}

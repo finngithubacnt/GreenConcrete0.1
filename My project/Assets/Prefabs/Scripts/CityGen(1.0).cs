@@ -8,14 +8,14 @@ public class CityRoadGenerator : MonoBehaviour
     public Transform player;
 
     [Header("Long Road Prefabs (rectangular)")]
-    public GameObject roadLongHorizontal; // stretched along X
-    public GameObject roadLongVertical;   // stretched along Z
+    public GameObject roadLongHorizontal;
+    public GameObject roadLongVertical;
 
     [Header("Connector Prefabs (square)")]
     public GameObject elbow;
     public GameObject tJunction;
     public GameObject intersection;
-    public GameObject straightConnector; // square 180° connector
+    public GameObject straightConnector;
 
     private Dictionary<Vector2Int, Tile> tiles = new();
 
@@ -68,47 +68,66 @@ public class CityRoadGenerator : MonoBehaviour
             if (tile.roadRight)
             {
                 Vector3 spawnPos = tilePos + new Vector3(tileSize / 2f, 0, 0);
-                Instantiate(roadLongHorizontal, spawnPos, Quaternion.identity, transform);
+                GameObject road = Instantiate(roadLongHorizontal, spawnPos, Quaternion.identity, transform);
+                road.tag = "LongRoad";
             }
 
             if (tile.roadTop)
             {
                 Vector3 spawnPos = tilePos + new Vector3(0, 0, tileSize / 2f);
-                Instantiate(roadLongVertical, spawnPos, Quaternion.identity, transform);
+                GameObject road = Instantiate(roadLongVertical, spawnPos, Quaternion.identity, transform);
+                road.tag = "LongRoad";
             }
         }
 
-        // Step 4: Place connectors (square prefabs) at corners
+        // Step 4: Place connectors only when valid
         foreach (var kvp in tiles)
         {
             Vector2Int pos = kvp.Key;
 
-            // Evaluate corner at (pos + (1,1)) — the top-right corner of the current tile
-            bool left = tiles.ContainsKey(pos) && tiles[pos].roadTop;
-            bool down = tiles.ContainsKey(pos) && tiles[pos].roadRight;
+            // Look at the corner ABOVE and RIGHT of this tile
+            Vector2Int topLeft = pos + new Vector2Int(0, 1);     // C
+            Vector2Int bottomLeft = pos;                         // A
+            Vector2Int bottomRight = pos + new Vector2Int(1, 0); // B
 
-            bool right = tiles.ContainsKey(pos + Vector2Int.right) && tiles[pos + Vector2Int.right].roadTop;
-            bool up = tiles.ContainsKey(pos + Vector2Int.up) && tiles[pos + Vector2Int.up].roadRight;
+            bool fromLeft = tiles.ContainsKey(bottomLeft) && tiles[bottomLeft].roadRight;
+            bool fromDown = tiles.ContainsKey(bottomLeft) && tiles[bottomLeft].roadTop;
+            bool fromRight = tiles.ContainsKey(bottomRight) && tiles[bottomRight].roadLeft;
+            bool fromUp = tiles.ContainsKey(topLeft) && tiles[topLeft].roadBottom;
 
-            int connections = (up ? 1 : 0) + (down ? 1 : 0) + (left ? 1 : 0) + (right ? 1 : 0);
-            if (connections == 0) continue;
+            int connections = (fromLeft ? 1 : 0) + (fromRight ? 1 : 0) + (fromUp ? 1 : 0) + (fromDown ? 1 : 0);
+            if (connections < 2) continue; // Don't place connector unless 2+ sides connect
 
             Vector3 spawnPos = new Vector3((pos.x + 1) * tileSize, 0, (pos.y + 1) * tileSize);
+            GameObject prefab = null;
+            Quaternion rot = Quaternion.identity;
 
             if (connections == 4)
             {
-                Instantiate(intersection, spawnPos, Quaternion.identity, transform);
+                prefab = intersection;
             }
             else if (connections == 3)
             {
-                Instantiate(tJunction, spawnPos, GetTJunctionRotation(up, down, left, right), transform);
+                prefab = tJunction;
+                rot = GetTJunctionRotation(fromUp, fromDown, fromLeft, fromRight);
             }
             else if (connections == 2)
             {
-                if ((up && down) || (left && right))
-                    Instantiate(straightConnector, spawnPos, GetStraightRotation(up, down, left, right), transform);
+                if ((fromUp && fromDown) || (fromLeft && fromRight))
+                {
+                    prefab = straightConnector;
+                    rot = GetStraightRotation(fromUp, fromDown, fromLeft, fromRight);
+                }
                 else
-                    Instantiate(elbow, spawnPos, GetElbowRotation(up, down, left, right), transform);
+                {
+                    prefab = elbow;
+                    rot = GetElbowRotation(fromUp, fromDown, fromLeft, fromRight);
+                }
+            }
+
+            if (prefab != null)
+            {
+                Instantiate(prefab, spawnPos, rot, transform);
             }
         }
     }
@@ -126,7 +145,7 @@ public class CityRoadGenerator : MonoBehaviour
         if (!up) return Quaternion.Euler(0, 180, 0);
         if (!right) return Quaternion.Euler(0, 270, 0);
         if (!down) return Quaternion.Euler(0, 0, 0);
-        return Quaternion.Euler(0, 90, 0); // no left
+        return Quaternion.Euler(0, 90, 0); // missing left
     }
 
     Quaternion GetStraightRotation(bool up, bool down, bool left, bool right)

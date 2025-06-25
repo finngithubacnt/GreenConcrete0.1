@@ -128,7 +128,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 903678176}
-  - component: {fileID: 903678177}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -145,38 +144,12 @@ Transform:
   m_GameObject: {fileID: 903678175}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.8, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &903678177
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 903678175}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a5a69d79d4fb6947b282a9a3ff9e322, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gridSize: 14
-  tileSize: 150
-  player: {fileID: 1104232305}
-  roadLongHorizontal: {fileID: 1540305046205733120, guid: 3e98ce590e4ed004f8d0421982fcaf84, type: 3}
-  roadLongVertical: {fileID: 1540305046205733120, guid: 8cb475b4c9eaacb42804f95cef29a194, type: 3}
-  elbow: {fileID: 6622904360314032064, guid: 4accef6bf6346e6439ba6d2bd95d65f5, type: 3}
-  tJunction: {fileID: 1540305046205733120, guid: 54544b60ee946724c9dacfc60807309b, type: 3}
-  intersection: {fileID: 5963825072579061199, guid: 881dae6cd266f5241a5aada0fdab5c04, type: 3}
-  straightConnector: {fileID: 1540305046205733120, guid: cb4664ae007ebc84c841a9a13208beaa, type: 3}
---- !u!4 &1104232305 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6792136107597336930, guid: c00ef642da9800143bdd0da694af4c1d, type: 3}
-  m_PrefabInstance: {fileID: 1533588642}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1533588642
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class CityGenerator : MonoBehaviour
+public class CityGenerator1 : MonoBehaviour
 {
     public Transform player;
     public int tileSize = 20;
